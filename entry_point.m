@@ -1,6 +1,7 @@
 @import AppKit;
 @import Metal;
 @import QuartzCore;
+@import simd;
 
 #include "main_view.m"
 

@@ -52,6 +52,15 @@ id<MTLRenderPipelineState> pipelineState;
 	        [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
 
 	[encoder setRenderPipelineState:pipelineState];
+
+	simd_float2 resolution = 0;
+	resolution.x = (float)self.frame.size.width;
+	resolution.y = (float)self.frame.size.height;
+	[encoder setVertexBytes:&resolution length:sizeof(resolution) atIndex:0];
+
+	float size = 200;
+	[encoder setVertexBytes:&size length:sizeof(size) atIndex:1];
+
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
 	[encoder endEncoding];
 

@@ -4,17 +4,14 @@ struct RasterizerData
 	float4 color;
 };
 
-constant float4 positions[] = {
-        {0, 0.5, 0, 1},
-        {-0.5, -0.5, 0, 1},
-        {0.5, -0.5, 0, 1},
-};
+constant float2 positions[] = {{0, 1}, {-1, -1}, {1, -1}};
 
 vertex RasterizerData
-VertexFunction(uint vertex_id [[vertex_id]])
+VertexFunction(uint vertex_id [[vertex_id]], constant float2 *resolution, constant float *size)
 {
 	RasterizerData output = {0};
-	output.position = positions[vertex_id];
+	output.position.xy = positions[vertex_id] * *size / *resolution;
+	output.position.w = 1;
 	output.color = float4(1, 1, 1, 1);
 	return output;
 }
