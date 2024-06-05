@@ -40,8 +40,6 @@ main(void)
 	setenv("MTL_SHADER_VALIDATION", "1", 1);
 	setenv("MTL_DEBUG_LAYER", "1", 1);
 	setenv("MTL_DEBUG_LAYER_WARNING_MODE", "assert", 1);
-	setenv("MTL_DEBUG_LAYER_VALIDATE_LOAD_ACTIONS", "1", 1);
-	setenv("MTL_DEBUG_LAYER_VALIDATE_STORE_ACTIONS", "1", 1);
 
 	@autoreleasepool
 	{

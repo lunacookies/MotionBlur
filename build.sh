@@ -15,7 +15,6 @@ plutil -convert binary1 build/MotionBlur.app/Contents/Info.plist
 clang -o build/MotionBlur.app/Contents/MacOS/MotionBlur \
 	-fmodules -fobjc-arc \
 	-g3 \
-	-Os \
 	-ftrivial-auto-var-init=zero -fwrapv \
 	-W \
 	-Wall \
