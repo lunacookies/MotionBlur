@@ -34,11 +34,19 @@ id<MTLRenderPipelineState> pipelineState;
 	displayLink = [self displayLinkWithTarget:self selector:@selector(render)];
 	[displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
 
+	CAFrameRateRange range = {0};
+	range.maximum = 60;
+	range.minimum = 60;
+	range.preferred = 60;
+	displayLink.preferredFrameRateRange = range;
+
 	return self;
 }
 
 - (void)render
 {
+	double targetTimestamp = displayLink.targetTimestamp;
+
 	id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
 	id<CAMetalDrawable> drawable = [metalLayer nextDrawable];
 
@@ -58,10 +66,12 @@ id<MTLRenderPipelineState> pipelineState;
 	resolution.y = (float)self.frame.size.height;
 	[encoder setVertexBytes:&resolution length:sizeof(resolution) atIndex:0];
 
-	simd_float2 position = {0, -200};
+	static simd_float2 position = 0;
+	position.x = 400 * (float)cos(10 * targetTimestamp);
+	position.y = 400 * (float)sin(10 * targetTimestamp * 2);
 	[encoder setVertexBytes:&position length:sizeof(position) atIndex:1];
 
-	float size = 200;
+	float size = 100;
 	[encoder setVertexBytes:&size length:sizeof(size) atIndex:2];
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];

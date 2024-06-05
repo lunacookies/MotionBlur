@@ -50,7 +50,7 @@ main(void)
 
 		NSApp.mainMenu = CreateMenu();
 
-		NSRect rect = NSMakeRect(100, 100, 500, 400);
+		NSRect rect = NSMakeRect(100, 100, 1000, 700);
 
 		NSWindowStyleMask style = NSWindowStyleMaskTitled | NSWindowStyleMaskResizable |
 		                          NSWindowStyleMaskClosable |
