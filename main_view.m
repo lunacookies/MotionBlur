@@ -58,8 +58,11 @@ id<MTLRenderPipelineState> pipelineState;
 	resolution.y = (float)self.frame.size.height;
 	[encoder setVertexBytes:&resolution length:sizeof(resolution) atIndex:0];
 
+	simd_float2 position = {0, -200};
+	[encoder setVertexBytes:&position length:sizeof(position) atIndex:1];
+
 	float size = 200;
-	[encoder setVertexBytes:&size length:sizeof(size) atIndex:1];
+	[encoder setVertexBytes:&size length:sizeof(size) atIndex:2];
 
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
 	[encoder endEncoding];

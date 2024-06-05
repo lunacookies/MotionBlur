@@ -7,10 +7,11 @@ struct RasterizerData
 constant float2 positions[] = {{0, 1}, {-1, -1}, {1, -1}};
 
 vertex RasterizerData
-VertexFunction(uint vertex_id [[vertex_id]], constant float2 *resolution, constant float *size)
+VertexFunction(uint vertex_id [[vertex_id]], constant float2 *resolution, constant float2 *position,
+        constant float *size)
 {
 	RasterizerData output = {0};
-	output.position.xy = positions[vertex_id] * *size / *resolution;
+	output.position.xy = (positions[vertex_id] * *size + *position) / *resolution;
 	output.position.w = 1;
 	output.color = float4(1, 1, 1, 1);
 	return output;
