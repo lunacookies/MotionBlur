@@ -114,7 +114,7 @@ id<MTLTexture> accumulatorTexture;
 	descriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
 
 	descriptor.colorAttachments[1].texture = accumulatorTexture;
-	descriptor.colorAttachments[1].storeAction = MTLStoreActionStore;
+	descriptor.colorAttachments[1].storeAction = MTLStoreActionDontCare;
 	descriptor.colorAttachments[1].loadAction = MTLLoadActionClear;
 	descriptor.colorAttachments[1].clearColor = MTLClearColorMake(0, 0, 0, 0);
 
@@ -204,12 +204,11 @@ id<MTLTexture> accumulatorTexture;
 	descriptor.height = (NSUInteger)size.height;
 	descriptor.pixelFormat = MTLPixelFormatRGBA16Float;
 	descriptor.usage = MTLTextureUsageRenderTarget;
-
 	descriptor.storageMode = MTLStorageModeMemoryless;
+
 	offscreenTexture = [device newTextureWithDescriptor:descriptor];
 	offscreenTexture.label = @"Offscreen Texture";
 
-	descriptor.storageMode = MTLStorageModePrivate;
 	accumulatorTexture = [device newTextureWithDescriptor:descriptor];
 	accumulatorTexture.label = @"Accumulator Texture";
 }
