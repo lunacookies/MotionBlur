@@ -16,6 +16,9 @@ id<MTLRenderPipelineState> pipelineStateFlatten;
 id<MTLTexture> offscreenTexture;
 id<MTLTexture> accumulatorTexture;
 
+simd_float2 target_position;
+simd_float2 position;
+
 - (instancetype)initWithFrame:(NSRect)frame
 {
 	self = [super initWithFrame:frame];
@@ -101,7 +104,7 @@ id<MTLTexture> accumulatorTexture;
 
 	id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
 
-	uint64_t subframeCount = 128;
+	uint64_t subframeCount = 10;
 	double subframeDeltaTime =
 	        (displayLink.targetTimestamp - displayLink.timestamp) / subframeCount;
 
@@ -131,8 +134,20 @@ id<MTLTexture> accumulatorTexture;
 		[encoder setRenderPipelineState:pipelineStateClear];
 		[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 
+		static double previousSubframeTargetTimestamp = 0;
+		double subframeTargetTimestamp = targetTimestamp + i * subframeDeltaTime;
+
+		if (previousSubframeTargetTimestamp == 0)
+		{
+			previousSubframeTargetTimestamp = subframeTargetTimestamp;
+		}
+
 		[self renderSubframeWithEncoder:encoder
-		                targetTimestamp:targetTimestamp + i * subframeDeltaTime];
+		                targetTimestamp:subframeTargetTimestamp
+		                      deltaTime:(float)(subframeTargetTimestamp -
+		                                        previousSubframeTargetTimestamp)];
+
+		previousSubframeTargetTimestamp = subframeTargetTimestamp;
 
 		[encoder setRenderPipelineState:pipelineStateAccumulate];
 		[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
@@ -151,14 +166,13 @@ id<MTLTexture> accumulatorTexture;
 
 - (void)renderSubframeWithEncoder:(id<MTLRenderCommandEncoder>)encoder
                   targetTimestamp:(double)targetTimestamp
+                        deltaTime:(float)deltaTime
 {
 	simd_float2 resolution = 0;
 	resolution.x = (float)self.frame.size.width;
 	resolution.y = (float)self.frame.size.height;
 
-	static simd_float2 position = 0;
-	position.x = 400 * (float)cos(10 * targetTimestamp);
-	position.y = 400 * (float)sin(10 * targetTimestamp * 2);
+	position = simd_mix(position, target_position, 40 * deltaTime);
 
 	float size = 100;
 
@@ -211,6 +225,24 @@ id<MTLTexture> accumulatorTexture;
 
 	accumulatorTexture = [device newTextureWithDescriptor:descriptor];
 	accumulatorTexture.label = @"Accumulator Texture";
+}
+
+- (void)updateTrackingAreas
+{
+	NSTrackingAreaOptions options = NSTrackingActiveAlways | NSTrackingMouseMoved;
+	[self addTrackingArea:[[NSTrackingArea alloc] initWithRect:self.bounds
+	                                                   options:options
+	                                                     owner:self
+	                                                  userInfo:nil]];
+}
+
+- (void)mouseMoved:(NSEvent *)event
+{
+	NSPoint location = [self convertPoint:event.locationInWindow fromView:nil];
+	target_position.x = (float)location.x;
+	target_position.y = (float)location.y;
+	target_position.x -= (float)self.bounds.size.width * 0.5f;
+	target_position.y -= (float)self.bounds.size.height * 0.5f;
 }
 
 @end

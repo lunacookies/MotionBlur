@@ -20,7 +20,7 @@ VertexFunction(uint vertex_id [[vertex_id]], constant float2 *resolution, consta
         constant float *size)
 {
 	RasterizerData output = {0};
-	output.position.xy = (triangle_positions[vertex_id] * *size + *position) / *resolution;
+	output.position.xy = (triangle_positions[vertex_id] * *size + *position * 2) / *resolution;
 	output.position.w = 1;
 	output.color = float4(1, 1, 1, 1);
 	return output;
