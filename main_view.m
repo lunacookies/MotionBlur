@@ -83,7 +83,7 @@ id<MTLTexture> accumulatorTexture;
 
 	id<MTLCommandBuffer> commandBuffer = [commandQueue commandBuffer];
 
-	uint64_t subframeCount = 10;
+	uint64_t subframeCount = 128;
 	double subframeDeltaTime =
 	        (displayLink.targetTimestamp - displayLink.timestamp) / subframeCount;
 
