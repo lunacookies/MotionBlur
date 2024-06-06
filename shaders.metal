@@ -38,11 +38,17 @@ AccumulateVertexFunction(uint vertex_id [[vertex_id]])
 	return float4(quad_positions[vertex_id], 0, 1);
 }
 
-fragment float4
-AccumulateFragmentFunction(
-        float4 accumulator_color [[color(0)]], float4 offscreen_color [[color(1)]])
+struct AccumulateAttachments
 {
-	return accumulator_color + offscreen_color;
+	float4 offscreen_color [[color(0)]];
+	float4 accumulator_color [[color(1)]];
+};
+
+fragment AccumulateAttachments
+AccumulateFragmentFunction(AccumulateAttachments attachments)
+{
+	attachments.accumulator_color += attachments.offscreen_color;
+	return attachments;
 }
 
 vertex float4

@@ -35,6 +35,7 @@ id<MTLTexture> accumulatorTexture;
 		MTLRenderPipelineDescriptor *descriptor =
 		        [[MTLRenderPipelineDescriptor alloc] init];
 		descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
+		descriptor.colorAttachments[1].pixelFormat = MTLPixelFormatRGBA16Float;
 		descriptor.vertexFunction = [library newFunctionWithName:@"VertexFunction"];
 		descriptor.fragmentFunction = [library newFunctionWithName:@"FragmentFunction"];
 		pipelineState = [device newRenderPipelineStateWithDescriptor:descriptor error:nil];
@@ -89,39 +90,35 @@ id<MTLTexture> accumulatorTexture;
 
 	for (uint64_t i = 0; i < subframeCount; i++)
 	{
-		[self renderSubframeWithCommandBuffer:commandBuffer
-		                      targetTimestamp:targetTimestamp + i * subframeDeltaTime
-		                         renderTarget:offscreenTexture];
+		MTLRenderPassDescriptor *descriptor =
+		        [MTLRenderPassDescriptor renderPassDescriptor];
 
+		descriptor.colorAttachments[0].texture = offscreenTexture;
+		descriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+		descriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+		descriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.5, 0.5, 0.5, 1);
+
+		descriptor.colorAttachments[1].texture = accumulatorTexture;
+		descriptor.colorAttachments[1].storeAction = MTLStoreActionStore;
+		if (i == 0)
 		{
-			MTLRenderPassDescriptor *descriptor =
-			        [MTLRenderPassDescriptor renderPassDescriptor];
-
-			descriptor.colorAttachments[0].texture = accumulatorTexture;
-			descriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-			if (i == 0)
-			{
-				descriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-				descriptor.colorAttachments[0].clearColor =
-				        MTLClearColorMake(0, 0, 0, 0);
-			}
-			else
-			{
-				descriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
-			}
-
-			descriptor.colorAttachments[1].texture = offscreenTexture;
-			descriptor.colorAttachments[1].storeAction = MTLStoreActionStore;
-			descriptor.colorAttachments[1].loadAction = MTLLoadActionLoad;
-
-			id<MTLRenderCommandEncoder> encoder =
-			        [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
-			[encoder setRenderPipelineState:pipelineStateAccumulate];
-			[encoder drawPrimitives:MTLPrimitiveTypeTriangle
-			            vertexStart:0
-			            vertexCount:6];
-			[encoder endEncoding];
+			descriptor.colorAttachments[1].loadAction = MTLLoadActionClear;
+			descriptor.colorAttachments[1].clearColor = MTLClearColorMake(0, 0, 0, 0);
 		}
+		else
+		{
+			descriptor.colorAttachments[1].loadAction = MTLLoadActionLoad;
+		}
+
+		id<MTLRenderCommandEncoder> encoder =
+		        [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
+
+		[self renderSubframeWithEncoder:encoder
+		                targetTimestamp:targetTimestamp + i * subframeDeltaTime];
+
+		[encoder setRenderPipelineState:pipelineStateAccumulate];
+		[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+		[encoder endEncoding];
 	}
 
 	id<CAMetalDrawable> drawable = [metalLayer nextDrawable];
@@ -150,19 +147,9 @@ id<MTLTexture> accumulatorTexture;
 	[commandBuffer commit];
 }
 
-- (void)renderSubframeWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
-                        targetTimestamp:(double)targetTimestamp
-                           renderTarget:(id<MTLTexture>)renderTarget
+- (void)renderSubframeWithEncoder:(id<MTLRenderCommandEncoder>)encoder
+                  targetTimestamp:(double)targetTimestamp
 {
-	MTLRenderPassDescriptor *descriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-	descriptor.colorAttachments[0].texture = renderTarget;
-	descriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-	descriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-	descriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.5, 0.5, 0.5, 1);
-
-	id<MTLRenderCommandEncoder> encoder =
-	        [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
-
 	simd_float2 resolution = 0;
 	resolution.x = (float)self.frame.size.width;
 	resolution.y = (float)self.frame.size.height;
@@ -178,7 +165,6 @@ id<MTLTexture> accumulatorTexture;
 	[encoder setVertexBytes:&position length:sizeof(position) atIndex:1];
 	[encoder setVertexBytes:&size length:sizeof(size) atIndex:2];
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
-	[encoder endEncoding];
 }
 
 - (void)viewDidChangeBackingProperties
