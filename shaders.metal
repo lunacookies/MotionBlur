@@ -33,6 +33,18 @@ FragmentFunction(RasterizerData input [[stage_in]])
 }
 
 vertex float4
+ClearVertexFunction(uint vertex_id [[vertex_id]])
+{
+	return float4(quad_positions[vertex_id], 0, 1);
+}
+
+fragment float4
+ClearFragmentFunction()
+{
+	return float4(0.5, 0.5, 0.5, 1);
+}
+
+vertex float4
 AccumulateVertexFunction(uint vertex_id [[vertex_id]])
 {
 	return float4(quad_positions[vertex_id], 0, 1);

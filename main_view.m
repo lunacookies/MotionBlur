@@ -9,6 +9,7 @@ id<MTLCommandQueue> commandQueue;
 CADisplayLink *displayLink;
 
 id<MTLRenderPipelineState> pipelineState;
+id<MTLRenderPipelineState> pipelineStateClear;
 id<MTLRenderPipelineState> pipelineStateAccumulate;
 id<MTLRenderPipelineState> pipelineStateFlatten;
 
@@ -39,6 +40,18 @@ id<MTLTexture> accumulatorTexture;
 		descriptor.vertexFunction = [library newFunctionWithName:@"VertexFunction"];
 		descriptor.fragmentFunction = [library newFunctionWithName:@"FragmentFunction"];
 		pipelineState = [device newRenderPipelineStateWithDescriptor:descriptor error:nil];
+	}
+
+	{
+		MTLRenderPipelineDescriptor *descriptor =
+		        [[MTLRenderPipelineDescriptor alloc] init];
+		descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
+		descriptor.colorAttachments[1].pixelFormat = MTLPixelFormatRGBA16Float;
+		descriptor.vertexFunction = [library newFunctionWithName:@"ClearVertexFunction"];
+		descriptor.fragmentFunction =
+		        [library newFunctionWithName:@"ClearFragmentFunction"];
+		pipelineStateClear = [device newRenderPipelineStateWithDescriptor:descriptor
+		                                                            error:nil];
 	}
 
 	{
@@ -88,36 +101,38 @@ id<MTLTexture> accumulatorTexture;
 	double subframeDeltaTime =
 	        (displayLink.targetTimestamp - displayLink.timestamp) / subframeCount;
 
-	for (uint64_t i = 0; i < subframeCount; i++)
 	{
 		MTLRenderPassDescriptor *descriptor =
 		        [MTLRenderPassDescriptor renderPassDescriptor];
 
 		descriptor.colorAttachments[0].texture = offscreenTexture;
 		descriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
-		descriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-		descriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.5, 0.5, 0.5, 1);
+		descriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
 
 		descriptor.colorAttachments[1].texture = accumulatorTexture;
 		descriptor.colorAttachments[1].storeAction = MTLStoreActionStore;
-		if (i == 0)
-		{
-			descriptor.colorAttachments[1].loadAction = MTLLoadActionClear;
-			descriptor.colorAttachments[1].clearColor = MTLClearColorMake(0, 0, 0, 0);
-		}
-		else
-		{
-			descriptor.colorAttachments[1].loadAction = MTLLoadActionLoad;
-		}
+		descriptor.colorAttachments[1].loadAction = MTLLoadActionClear;
+		descriptor.colorAttachments[1].clearColor = MTLClearColorMake(0, 0, 0, 0);
 
 		id<MTLRenderCommandEncoder> encoder =
 		        [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
 
-		[self renderSubframeWithEncoder:encoder
-		                targetTimestamp:targetTimestamp + i * subframeDeltaTime];
+		for (uint64_t i = 0; i < subframeCount; i++)
+		{
+			[encoder setRenderPipelineState:pipelineStateClear];
+			[encoder drawPrimitives:MTLPrimitiveTypeTriangle
+			            vertexStart:0
+			            vertexCount:6];
 
-		[encoder setRenderPipelineState:pipelineStateAccumulate];
-		[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+			[self renderSubframeWithEncoder:encoder
+			                targetTimestamp:targetTimestamp + i * subframeDeltaTime];
+
+			[encoder setRenderPipelineState:pipelineStateAccumulate];
+			[encoder drawPrimitives:MTLPrimitiveTypeTriangle
+			            vertexStart:0
+			            vertexCount:6];
+		}
+
 		[encoder endEncoding];
 	}
 
