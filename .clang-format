@@ -11,4 +11,5 @@ ColumnLimit: 100
 ContinuationIndentWidth: 8
 IndentCaseLabels: true
 IndentWidth: 8
+SortIncludes: false
 UseTab: ForIndentation
