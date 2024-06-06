@@ -37,6 +37,7 @@ id<MTLTexture> accumulatorTexture;
 		        [[MTLRenderPipelineDescriptor alloc] init];
 		descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
 		descriptor.colorAttachments[1].pixelFormat = MTLPixelFormatRGBA16Float;
+		descriptor.colorAttachments[2].pixelFormat = metalLayer.pixelFormat;
 		descriptor.vertexFunction = [library newFunctionWithName:@"VertexFunction"];
 		descriptor.fragmentFunction = [library newFunctionWithName:@"FragmentFunction"];
 		pipelineState = [device newRenderPipelineStateWithDescriptor:descriptor error:nil];
@@ -47,6 +48,7 @@ id<MTLTexture> accumulatorTexture;
 		        [[MTLRenderPipelineDescriptor alloc] init];
 		descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
 		descriptor.colorAttachments[1].pixelFormat = MTLPixelFormatRGBA16Float;
+		descriptor.colorAttachments[2].pixelFormat = metalLayer.pixelFormat;
 		descriptor.vertexFunction = [library newFunctionWithName:@"ClearVertexFunction"];
 		descriptor.fragmentFunction =
 		        [library newFunctionWithName:@"ClearFragmentFunction"];
@@ -59,6 +61,7 @@ id<MTLTexture> accumulatorTexture;
 		        [[MTLRenderPipelineDescriptor alloc] init];
 		descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
 		descriptor.colorAttachments[1].pixelFormat = MTLPixelFormatRGBA16Float;
+		descriptor.colorAttachments[2].pixelFormat = metalLayer.pixelFormat;
 		descriptor.vertexFunction =
 		        [library newFunctionWithName:@"AccumulateVertexFunction"];
 		descriptor.fragmentFunction =
@@ -70,8 +73,9 @@ id<MTLTexture> accumulatorTexture;
 	{
 		MTLRenderPipelineDescriptor *descriptor =
 		        [[MTLRenderPipelineDescriptor alloc] init];
-		descriptor.colorAttachments[0].pixelFormat = metalLayer.pixelFormat;
+		descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;
 		descriptor.colorAttachments[1].pixelFormat = MTLPixelFormatRGBA16Float;
+		descriptor.colorAttachments[2].pixelFormat = metalLayer.pixelFormat;
 		descriptor.vertexFunction = [library newFunctionWithName:@"FlattenVertexFunction"];
 		descriptor.fragmentFunction =
 		        [library newFunctionWithName:@"FlattenFragmentFunction"];
@@ -101,61 +105,44 @@ id<MTLTexture> accumulatorTexture;
 	double subframeDeltaTime =
 	        (displayLink.targetTimestamp - displayLink.timestamp) / subframeCount;
 
-	{
-		MTLRenderPassDescriptor *descriptor =
-		        [MTLRenderPassDescriptor renderPassDescriptor];
-
-		descriptor.colorAttachments[0].texture = offscreenTexture;
-		descriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
-		descriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
-
-		descriptor.colorAttachments[1].texture = accumulatorTexture;
-		descriptor.colorAttachments[1].storeAction = MTLStoreActionStore;
-		descriptor.colorAttachments[1].loadAction = MTLLoadActionClear;
-		descriptor.colorAttachments[1].clearColor = MTLClearColorMake(0, 0, 0, 0);
-
-		id<MTLRenderCommandEncoder> encoder =
-		        [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
-
-		for (uint64_t i = 0; i < subframeCount; i++)
-		{
-			[encoder setRenderPipelineState:pipelineStateClear];
-			[encoder drawPrimitives:MTLPrimitiveTypeTriangle
-			            vertexStart:0
-			            vertexCount:6];
-
-			[self renderSubframeWithEncoder:encoder
-			                targetTimestamp:targetTimestamp + i * subframeDeltaTime];
-
-			[encoder setRenderPipelineState:pipelineStateAccumulate];
-			[encoder drawPrimitives:MTLPrimitiveTypeTriangle
-			            vertexStart:0
-			            vertexCount:6];
-		}
-
-		[encoder endEncoding];
-	}
-
 	id<CAMetalDrawable> drawable = [metalLayer nextDrawable];
 
 	MTLRenderPassDescriptor *descriptor = [MTLRenderPassDescriptor renderPassDescriptor];
 
-	descriptor.colorAttachments[0].texture = drawable.texture;
-	descriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+	descriptor.colorAttachments[0].texture = offscreenTexture;
+	descriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
 	descriptor.colorAttachments[0].loadAction = MTLLoadActionDontCare;
 
 	descriptor.colorAttachments[1].texture = accumulatorTexture;
-	descriptor.colorAttachments[1].storeAction = MTLStoreActionDontCare;
-	descriptor.colorAttachments[1].loadAction = MTLLoadActionLoad;
+	descriptor.colorAttachments[1].storeAction = MTLStoreActionStore;
+	descriptor.colorAttachments[1].loadAction = MTLLoadActionClear;
+	descriptor.colorAttachments[1].clearColor = MTLClearColorMake(0, 0, 0, 0);
+
+	descriptor.colorAttachments[2].texture = drawable.texture;
+	descriptor.colorAttachments[2].storeAction = MTLStoreActionStore;
+	descriptor.colorAttachments[2].loadAction = MTLLoadActionClear;
+	descriptor.colorAttachments[2].clearColor = MTLClearColorMake(0, 0, 0, 0);
 
 	id<MTLRenderCommandEncoder> encoder =
 	        [commandBuffer renderCommandEncoderWithDescriptor:descriptor];
 
-	uint32_t subframeCount32 = (uint32_t)subframeCount;
+	for (uint64_t i = 0; i < subframeCount; i++)
+	{
+		[encoder setRenderPipelineState:pipelineStateClear];
+		[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
 
+		[self renderSubframeWithEncoder:encoder
+		                targetTimestamp:targetTimestamp + i * subframeDeltaTime];
+
+		[encoder setRenderPipelineState:pipelineStateAccumulate];
+		[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+	}
+
+	uint32_t subframeCount32 = (uint32_t)subframeCount;
 	[encoder setRenderPipelineState:pipelineStateFlatten];
 	[encoder setFragmentBytes:&subframeCount32 length:sizeof(subframeCount32) atIndex:0];
 	[encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
+
 	[encoder endEncoding];
 
 	[commandBuffer presentDrawable:drawable];

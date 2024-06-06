@@ -69,8 +69,15 @@ FlattenVertexFunction(uint vertex_id [[vertex_id]])
 	return float4(quad_positions[vertex_id], 0, 1);
 }
 
-fragment float4
+struct FlattenAttachments
+{
+	float4 drawable_color [[color(2)]];
+};
+
+fragment FlattenAttachments
 FlattenFragmentFunction(float4 accumulator_color [[color(1)]], constant uint *subframe_count)
 {
-	return accumulator_color / *subframe_count;
+	FlattenAttachments attachments = {0};
+	attachments.drawable_color = accumulator_color / *subframe_count;
+	return attachments;
 }
