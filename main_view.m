@@ -94,7 +94,7 @@ id<MTLTexture> accumulatorTexture;
 		        [MTLRenderPassDescriptor renderPassDescriptor];
 
 		descriptor.colorAttachments[0].texture = offscreenTexture;
-		descriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+		descriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
 		descriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 		descriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.5, 0.5, 0.5, 1);
 
@@ -203,9 +203,11 @@ id<MTLTexture> accumulatorTexture;
 	descriptor.pixelFormat = MTLPixelFormatRGBA16Float;
 	descriptor.usage = MTLTextureUsageRenderTarget;
 
+	descriptor.storageMode = MTLStorageModeMemoryless;
 	offscreenTexture = [device newTextureWithDescriptor:descriptor];
 	offscreenTexture.label = @"Offscreen Texture";
 
+	descriptor.storageMode = MTLStorageModePrivate;
 	accumulatorTexture = [device newTextureWithDescriptor:descriptor];
 	accumulatorTexture.label = @"Accumulator Texture";
 }
